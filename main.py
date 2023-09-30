@@ -1,14 +1,14 @@
-import discord
-from bot_token import BOT_TOKEN
-import re
-import json
-from exceptions import *
 import os
-from discord.ext import commands
+import re
 import sys
+import json
 from enum import Enum
 from datetime import datetime
+import discord
+from discord.ext import commands
 from datatypes import *
+from exceptions import *
+from bot_token import BOT_TOKEN
 
 
 # Exit Codes
