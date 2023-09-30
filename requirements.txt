@@ -1,0 +1,4 @@
+# Discord API dependencies
+# TODO: Specify discord package version to avoid rolling release breakage.
+discord
+

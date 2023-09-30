@@ -6,6 +6,15 @@ from exceptions import *
 import os
 from discord.ext import commands
 
+import sys
+from enum import Enum
+
+# Exit Codes
+# Anything thrown under OTHER_ERR should be diagnosed and reported in a future patch.
+class ExitCode(Enum):
+    INVALID_JSON_FILE = 1
+    OTHER_ERR         = 2
+
 # Create JSON file if it does not exist
 dbpath = "./database.json"
 if not os.path.exists(dbpath):
@@ -22,10 +31,12 @@ try:
         json.load(jsondb)
 except json.JSONDecodeError as e:
     print(f"Invalid JSON file:\n"
-          f"{e}")
+          f"{e}", file=sys.stderr)
+    exit(ExitCode.INVALID_JSON_FILE)
 except Exception as e:
     print(f"Something went wrong:\n"
-          f"{e}")
+          f"{e}", file=sys.stderr)
+    exit(ExitCode.OTHER_ERR)
 
 
 class WordleTracker(commands.Bot):
