@@ -286,7 +286,10 @@ async def distribution(ctx, to_check=None):
         member_id = ctx.author.id
     data = {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "X": 0}
     for k, v in bot.database["guilds"][str(ctx.guild.id)]["members"][str(member_id)].items():
-        data[str(len(v["attempts"]))] += 1
+        if not v["solved"]:
+            data["X"] += 1
+        else:
+            data[str(len(v["attempts"]))] += 1
     graph_raw = create_bargraph_image(data)
     img = Image.open(graph_raw)
     img.show()
