@@ -49,28 +49,28 @@ def string_contains_substrs(string, substrs):
     return False
 
 
-def create_bargraph_image(kvp):
+def create_bargraph_image(kvp, name):
     # Extract keys and values from the dictionary
     labels = list(kvp.keys())
     values = list(kvp.values())
 
     # Create a bar graph with value annotations
     fig, ax = plt.subplots()
-    bars = ax.bar(labels, values, color='green')
-    bars[-1].set_color('red')
+    bars = ax.bar(labels, values, color="green")
+    bars[-1].set_color("red")
 
-    ax.set_xlabel('Guesses to Solve')
-    ax.set_ylabel('Number of Wordles')
-    ax.set_title('Wordle Guesses Distribution')
+    ax.set_xlabel("Guesses to Solve")
+    ax.set_ylabel("Number of Wordles")
+    ax.set_title(f"Guesses Distribution for {name}")
 
     # Add value annotations to the bars
     for bar in bars:
         yval = bar.get_height()
-        ax.text(bar.get_x() + bar.get_width()/2, yval, round(yval, 2), ha='center', va='bottom')
+        ax.text(bar.get_x() + bar.get_width()/2, yval, round(yval, 2), ha="center", va="bottom")
 
     # Save the plot to a BytesIO object
     image_stream = BytesIO()
-    plt.savefig(image_stream, format='png')
+    plt.savefig(image_stream, format="png")
     image_stream.seek(0)
 
     # Clear the plot for the next use
@@ -292,9 +292,9 @@ async def distribution(ctx, to_check=None):
             data["X"] += 1
         else:
             data[str(len(v["attempts"]))] += 1
-    graph_raw = create_bargraph_image(data)
+    graph_raw = create_bargraph_image(data, bot.fetch_user(member_id))
     img = Image.open(graph_raw)
-    img.show()
+    await ctx.send(file=img)
 
 
 bot.run(BOT_TOKEN)
