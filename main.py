@@ -292,9 +292,9 @@ async def distribution(ctx, to_check=None):
             data["X"] += 1
         else:
             data[str(len(v["attempts"]))] += 1
-    graph_raw = create_bargraph_image(data, bot.fetch_user(member_id))
-    img = Image.open(graph_raw)
-    await ctx.send(file=img)
+    user = await bot.fetch_user(member_id)
+    graph_raw = create_bargraph_image(data, user.name)
+    await ctx.send(file=discord.File(graph_raw, f"dist_{ctx.guild.id}_{member_id}.png"))
 
 
 bot.run(BOT_TOKEN)
