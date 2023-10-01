@@ -56,10 +56,12 @@ def create_bargraph_image(kvp):
 
     # Create a bar graph with value annotations
     fig, ax = plt.subplots()
-    bars = ax.bar(labels, values)
-    ax.set_xlabel('Categories')
-    ax.set_ylabel('Values')
-    ax.set_title('Bar Graph')
+    bars = ax.bar(labels, values, color='green')
+    bars[-1].set_color('red')
+
+    ax.set_xlabel('Guesses to Solve')
+    ax.set_ylabel('Number of Wordles')
+    ax.set_title('Wordle Guesses Distribution')
 
     # Add value annotations to the bars
     for bar in bars:
