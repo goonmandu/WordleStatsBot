@@ -4,6 +4,9 @@ import sys
 import json
 from enum import Enum
 from datetime import datetime
+from io import BytesIO
+from PIL import Image
+import matplotlib.pyplot as plt
 import discord
 from discord.ext import commands
 from datatypes import *
@@ -44,6 +47,34 @@ def string_contains_substrs(string, substrs):
         if substr in string:
             return True
     return False
+
+
+def create_bargraph_image(kvp):
+    # Extract keys and values from the dictionary
+    labels = list(kvp.keys())
+    values = list(kvp.values())
+
+    # Create a bar graph with value annotations
+    fig, ax = plt.subplots()
+    bars = ax.bar(labels, values)
+    ax.set_xlabel('Categories')
+    ax.set_ylabel('Values')
+    ax.set_title('Bar Graph')
+
+    # Add value annotations to the bars
+    for bar in bars:
+        yval = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2, yval, round(yval, 2), ha='center', va='bottom')
+
+    # Save the plot to a BytesIO object
+    image_stream = BytesIO()
+    plt.savefig(image_stream, format='png')
+    image_stream.seek(0)
+
+    # Clear the plot for the next use
+    plt.clf()
+
+    return image_stream
 
 
 # Create JSON file if it does not exist
@@ -239,6 +270,26 @@ async def leaderboards(ctx, gate=10):
     for idx, pair in enumerate(ret):
         retstr += f"`#{idx + 1}`: {str(pair)}\n"
     await ctx.send(retstr)
+
+@bot.command(aliases=["dist"])
+async def distribution(ctx, to_check=None):
+    if to_check:
+        try:
+            member_id = int(to_check)
+        except ValueError:
+            try:
+                member_id = int(to_check.rstrip(">").lstrip("<@"))
+            except ValueError:
+                await ctx.send("Invalid member ID format! Try again.")
+                return
+    else:
+        member_id = ctx.author.id
+    data = {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "X": 0}
+    for k, v in bot.database["guilds"][str(ctx.guild.id)]["members"][str(member_id)].items():
+        data[str(len(v["attempts"]))] += 1
+    graph_raw = create_bargraph_image(data)
+    img = Image.open(graph_raw)
+    img.show()
 
 
 bot.run(BOT_TOKEN)
