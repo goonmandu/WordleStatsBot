@@ -273,6 +273,7 @@ async def leaderboards(ctx, gate=10):
         retstr += f"`#{idx + 1}`: {str(pair)}\n"
     await ctx.send(retstr)
 
+
 @bot.command(aliases=["dist"])
 async def distribution(ctx, to_check=None):
     if to_check:
@@ -295,6 +296,25 @@ async def distribution(ctx, to_check=None):
     user = await bot.fetch_user(member_id)
     graph_raw = create_bargraph_image(data, user.name)
     await ctx.send(file=discord.File(graph_raw, f"dist_{ctx.guild.id}_{member_id}.png"))
+
+
+@bot.command(aliases=["rm"])
+@commands.has_permissions(administrator=True)
+async def remove(ctx, member_id, day):
+    if str(member_id) not in bot.database["guilds"][str(ctx.guild.id)]["members"]:
+        await ctx.send(f"Member with ID {member_id} not found!")
+        return
+    if str(day) not in bot.database["guilds"][str(ctx.guild.id)]["members"][str(member_id)]:
+        await ctx.send(f"Member ID {member_id} has no entry for {day}!")
+        return
+    try:
+        bot.database["guilds"][str(ctx.guild.id)]["members"][str(member_id)].pop(str(day))
+        with open(dbpath, 'w') as updated:
+            json.dump(bot.database, updated, indent=2)
+        user = await bot.fetch_user(member_id)
+        await ctx.send(f"Deleted Day {day} for user {user.name}.")
+    except Exception as e:
+        await ctx.send(e)
 
 
 bot.run(BOT_TOKEN)
