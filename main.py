@@ -256,7 +256,7 @@ async def leaderboards(ctx, gate=10):
     retstr = ""
     for k, v in bot.database["guilds"][str(ctx.guild.id)]["members"].items():
         total_days = len(v.items())
-        if total_days < gate:
+        if total_days < gate or total_days == 0:
             continue
         total_attempts = 0
         for daynumber, details in v.items():
