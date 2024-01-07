@@ -1,24 +1,19 @@
-import os
 import re
 import sys
 import json
 from enum import Enum
 from datetime import datetime
 from io import BytesIO
-from PIL import Image
+from pprint import pprint
 import matplotlib.pyplot as plt
 import discord
 from discord.ext import commands
 from datatypes import *
 from exceptions import *
 from bot_token import BOT_TOKEN
-
-
-# Exit Codes
-# Anything thrown under OTHER_ERR should be diagnosed and reported in a future patch.
-class ExitCode(Enum):
-    INVALID_JSON_FILE = 1
-    OTHER_ERR         = 2
+from datatypes import PathAndCreationTime
+from nsfw_utils import *
+from constants import *
 
 
 def delete_frontitems_until_regexmatch(lst, refilter):
@@ -104,8 +99,15 @@ except Exception as e:
 
 
 class WordleTracker(commands.Bot):
+    print("Compiling Wordle regex pattern...")
     wordle_pattern = re.compile(r'.*Wordle\s+\d+\s+[1-6X]/6\*?.*', re.DOTALL)
+    print("Done.")
+    print("Reading WordleStats database...")
     database = json.load(open(dbpath))
+    print("Done.")
+    print("Loading NSFW paths...")
+    porn_paths = load_nsfw_paths_and_ctimes(NSFW_SOURCE_PATH)
+    print("Done.")
 
     async def on_ready(self):
         print("Online!")
@@ -146,6 +148,8 @@ class WordleTracker(commands.Bot):
             print(f"Error: Malformed input.\n"
                   f"{e}"
                   f"{msg.content}")
+            await msg.channel.send(f"Error: Malformed input.\n"
+                                   f"{e}")
             return
 
     async def on_message(self, msg):
@@ -185,23 +189,9 @@ async def stats(ctx, *, day_number=None):
             ret += f"`{entry}`\n"
     await ctx.send(ret)
 
-'''
-@bot.command()
-async def fetchold(ctx):
-    for channel in ctx.guild.channels:
-        print(f"Iterating thru {channel.name}")
-        try:
-            if isinstance(channel, discord.TextChannel):
-                async for message in channel.history():
-                    if bot.wordle_pattern.match(message.content):
-                        await bot.evaluate_wordle(message, show_feedback=False)
-        except discord.errors.Forbidden as fe:
-            print(fe)
-    await ctx.send("Done")
-'''
-
 
 @bot.command()
+@commands.has_permissions(administrator=True)
 async def oldresults(ctx, *args):
     channels_to_check = [bot.get_channel(int(channel_id)) for channel_id in args]
     wordle_creation = datetime.strptime("2021-10-01", "%Y-%m-%d")
@@ -218,6 +208,8 @@ async def oldresults(ctx, *args):
                         await status_message.edit(content=f"Reading {latest_date}")
                     if bot.wordle_pattern.match(message.content) and not message.author.bot \
                             and string_contains_substrs(message.content, ["🟩", "🟨", "⬛"]):
+                        # The third square "⬛" may look green in PyCharm.
+                        # It actually is the "Black Large Square" emoji, U+2B1B.
                         await bot.evaluate_wordle(message, show_feedback=False)
         except discord.errors.Forbidden as fe:
             print(fe)
@@ -270,7 +262,14 @@ async def leaderboards(ctx, gate=10):
         return
     ret.sort(key=lambda x: x.average)
     for idx, pair in enumerate(ret):
-        retstr += f"`#{idx + 1}`: {str(pair)}\n"
+        if idx == 0:
+            retstr += f"🥇: **{str(pair)}**\n"
+        elif idx == 1:
+            retstr += f"🥈: **{str(pair)}**\n"
+        elif idx == 2:
+            retstr += f"🥉: **{str(pair)}**\n"
+        else:
+            retstr += f"`#{idx + 1}`: {str(pair)}\n"
     await ctx.send(retstr)
 
 
@@ -296,6 +295,7 @@ async def distribution(ctx, to_check=None):
     user = await bot.fetch_user(member_id)
     graph_raw = create_bargraph_image(data, user.name)
     await ctx.send(file=discord.File(graph_raw, f"dist_{ctx.guild.id}_{member_id}.png"))
+    del graph_raw  # Free memory
 
 
 @bot.command(aliases=["rm"])
@@ -315,6 +315,43 @@ async def remove(ctx, member_id, day):
         await ctx.send(f"Deleted Day {day} for user {user.name}.")
     except Exception as e:
         await ctx.send(e)
+
+
+@bot.command(aliases=["refreshporn"])
+@commands.is_nsfw()
+async def update_catalog(ctx):
+    bot.porn_paths = load_nsfw_paths_and_ctimes(NSFW_SOURCE_PATH)
+    await ctx.send("Refreshed porn catalog!")
+
+
+@bot.command()
+@commands.is_nsfw()
+async def porn(ctx):
+    try:
+        imagepath = choose_image(bot.porn_paths, False, 0)
+        await ctx.send(file=discord.File(imagepath, "hereyougo_youhornybastard.png"))
+    except discord.errors.HTTPException as e:
+        await ctx.send(e)
+
+
+@bot.command()
+@commands.is_nsfw()
+async def newporn(ctx, newest_count=100):
+    try:
+        imagepath = choose_image(bot.porn_paths, True, newest_count)
+        await ctx.send(file=discord.File(imagepath, "hereyougo_youhornybastard.png"))
+    except discord.errors.HTTPException as e:
+        await ctx.send(e)
+
+
+@bot.command(aliases=["json"])
+async def give_json(ctx):
+    json_string = json.dumps(bot.database["guilds"][str(ctx.guild.id)]["members"][str(ctx.author.id)], indent=2)
+    username = await bot.fetch_user(ctx.author.id)
+    guildname = await bot.fetch_guild(ctx.guild.id)
+    filename = f"{username}-{guildname}-wordles.json"
+    json_to_send = BytesIO(json_string.encode())
+    await ctx.send(file=discord.File(json_to_send), filename=filename)
 
 
 bot.run(BOT_TOKEN)
