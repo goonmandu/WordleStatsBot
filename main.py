@@ -1,17 +1,15 @@
 import re
 import sys
 import json
-from enum import Enum
+from requests import get
 from datetime import datetime
 from io import BytesIO
-from pprint import pprint
 import matplotlib.pyplot as plt
 import discord
 from discord.ext import commands
 from datatypes import *
 from exceptions import *
 from bot_token import BOT_TOKEN
-from datatypes import PathAndCreationTime
 from nsfw_utils import *
 from constants import *
 
@@ -351,7 +349,17 @@ async def give_json(ctx):
     guildname = await bot.fetch_guild(ctx.guild.id)
     filename = f"{username}-{guildname}-wordles.json"
     json_to_send = BytesIO(json_string.encode())
-    await ctx.send(file=discord.File(json_to_send), filename=filename)
+    await ctx.send(file=discord.File(json_to_send, filename=filename))
+
+
+@bot.command(aliases=["pfp"])
+async def profilepic(ctx, member=None):
+    user_id = member or ctx.author.id
+    user = await bot.fetch_user(user_id)
+    avatar = BytesIO(get(user.avatar.url).content)
+    ext = user.avatar.url.split(".")[-1].split("?")[0]
+    await ctx.send(f"{user.name}'s avatar:", file=discord.File(avatar, filename=f"{user_id}.{ext}"))
+
 
 
 bot.run(BOT_TOKEN)
