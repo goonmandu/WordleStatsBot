@@ -75,7 +75,8 @@ def remove_duplicate_jpeg_files(directory):
                     print(f"Removed: {jpeg_file_path} (due to existing {jpg_file_path})")
 
 
-# Example usage
-directory_to_restore = '/home/mingi/Documents/WordleStatsBot'
-remove_duplicate_jpeg_files(directory_to_restore)
-print("File extensions restored recursively.")
+if __name__ == "__main__":
+    # Example usage
+    directory_to_restore = '/home/mingi/Documents/WordleStatsBot'
+    remove_duplicate_jpeg_files(directory_to_restore)
+    print("File extensions restored recursively.")
