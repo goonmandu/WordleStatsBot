@@ -75,15 +75,6 @@ def remove_duplicate_jpeg_files(directory):
                     print(f"Removed: {jpeg_file_path} (due to existing {jpg_file_path})")
 
 
-def all_hentai_files():
-    hentai = []
-    for root, dirs, file in os.walk(f"{os.getcwd()}/download"):
-        for name in file:
-            if name not in hentai and name.lower().endswith(("png", "jpg", "jpeg", "gif", "mp4")):
-                hentai.append(os.path.join(root, name))
-    return hentai
-
-
 def load_nsfw_paths_and_ctimes(directory):
     file_list = []
 
