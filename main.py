@@ -242,18 +242,27 @@ async def wordles(ctx, to_check=None):
 
 @bot.command(aliases=["lb"])
 async def leaderboards(ctx, gate=10):
-    ret = []
+    def format_top_3(member: NameAndAvg):
+        return f"`{member.avgstr()}` - **{member.namestr()}** ({member.fracstr()}, {member.pctstr()})"
+
+    def format_other(member: NameAndAvg):
+        return f"`{member.avgstr()}` - {member.namestr()} ({member.fracstr()}, {member.pctstr()})"
+    ret: list[NameAndAvg] = []
     retstr = ""
     for k, v in bot.database["guilds"][str(ctx.guild.id)]["members"].items():
         total_days = len(v.items())
+        unsolved = 0
         if total_days < gate or total_days == 0:
             continue
         total_attempts = 0
         for daynumber, details in v.items():
+            if not details["solved"]:
+                unsolved += 1
+                continue
             total_attempts += len(details["attempts"])
-        average = total_attempts / total_days
+        average = total_attempts / (total_days - unsolved)
         user = await bot.fetch_user(int(k))
-        ret.append(NameAndAvg(user.name, average, total_days))
+        ret.append(NameAndAvg(user.name, average, total_days, unsolved))
     if not ret:
         await ctx.send(f"No members have played played enough Wordle to be on the leaderboards.\n"
                        f"The leaderboard gate is {gate} plays.")
@@ -261,13 +270,13 @@ async def leaderboards(ctx, gate=10):
     ret.sort(key=lambda x: x.average)
     for idx, pair in enumerate(ret):
         if idx == 0:
-            retstr += f"🥇: **{str(pair)}**\n"
+            retstr += f"🥇: {format_top_3(pair)}\n"
         elif idx == 1:
-            retstr += f"🥈: **{str(pair)}**\n"
+            retstr += f"🥈: {format_top_3(pair)}\n"
         elif idx == 2:
-            retstr += f"🥉: **{str(pair)}**\n"
+            retstr += f"🥉: {format_top_3(pair)}\n"
         else:
-            retstr += f"`#{idx + 1}`: {str(pair)}\n"
+            retstr += f"`#{idx + 1}`: {format_other(pair)}\n"
     await ctx.send(retstr)
 
 
@@ -353,13 +362,18 @@ async def give_json(ctx):
 
 
 @bot.command(aliases=["pfp"])
-async def profilepic(ctx, member=None):
+async def profilepic(ctx, scope="server", member=None):
+    if scope not in ["server", "global"]:
+        await ctx.send("Specify either server or global.")
+        return
     user_id = member or ctx.author.id
     user = await bot.fetch_user(user_id)
-    avatar = BytesIO(get(user.avatar.url).content)
+    if scope == "server":
+        avatar = BytesIO(get(user.display_avatar.url).content)
+    else:
+        avatar = BytesIO(get(user.avatar.url).content)
     ext = user.avatar.url.split(".")[-1].split("?")[0]
     await ctx.send(f"{user.name}'s avatar:", file=discord.File(avatar, filename=f"{user_id}.{ext}"))
-
 
 
 bot.run(BOT_TOKEN)
