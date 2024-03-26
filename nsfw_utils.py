@@ -96,11 +96,15 @@ def load_nsfw_paths_and_ctimes(directory):
     return file_list
 
 
-def choose_image(catalog, new, limit):
-    if not new:
-        return random.choice(catalog).path
+def choose_image(catalog, new, limit, ext=None):
+    if not ext:
+        if not new:
+            return random.choice(catalog).path
+        else:
+            return random.choice(catalog[:limit]).path
     else:
-        return random.choice(catalog[:limit]).path
+        filtered = [entry for entry in catalog if entry.path.endswith(ext)]
+        return random.choice(filtered).path
 
 
 if __name__ == "__main__":

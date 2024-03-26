@@ -114,8 +114,8 @@ class WordleTracker(commands.Bot):
         lines = msg.content.split("\n")
         delete_frontitems_until_regexmatch(lines, r'.*Wordle\s+\d+\s+[1-6X]/6\*?.*')
         delete_rearitems_until_regexmatch(lines, r'^[\U0001F7E9⬛\U0001F7E8].*')
-        extract_attempts = lines[0]
-        extract_wordle_day = lines[0]
+        extract_attempts = lines[0].replace(",", "").replace("🎉", "")
+        extract_wordle_day = lines[0].replace(",", "").replace("🎉", "")
         try:
             wordle_day = re.sub("\s+[1-6X]/6\*?.*", "", re.sub(".*Wordle\s+", "", extract_wordle_day))
             attempts = re.sub("/6\*?.*", "", re.sub(".*Wordle\s+\d+\s+", "", extract_attempts))
@@ -156,6 +156,8 @@ class WordleTracker(commands.Bot):
         await self.process_commands(msg)
         if self.wordle_pattern.match(msg.content):
             await self.evaluate_wordle(msg, show_feedback=True)
+        if "sleepy" in msg.content.lower():
+            await msg.channel.send("sleepy mentioned")
 
     async def on_disconnect(self):
         print("Offline!")
@@ -243,10 +245,10 @@ async def wordles(ctx, to_check=None):
 @bot.command(aliases=["lb"])
 async def leaderboards(ctx, gate=10):
     def format_top_3(member: NameAndAvg):
-        return f"`{member.avgstr()}` - **{member.namestr()}** ({member.fracstr()}, {member.pctstr()})"
+        return f"`{member.avgstr()}` - **{member.namestr()}** ({member.fracstr()})"
 
     def format_other(member: NameAndAvg):
-        return f"`{member.avgstr()}` - {member.namestr()} ({member.fracstr()}, {member.pctstr()})"
+        return f"`{member.avgstr()}` - {member.namestr()} ({member.fracstr()})"
     ret: list[NameAndAvg] = []
     retstr = ""
     for k, v in bot.database["guilds"][str(ctx.guild.id)]["members"].items():
@@ -336,7 +338,8 @@ async def update_catalog(ctx):
 async def porn(ctx):
     try:
         imagepath = choose_image(bot.porn_paths, False, 0)
-        await ctx.send(file=discord.File(imagepath, "hereyougo_youhornybastard.png"))
+        ext = imagepath.split(".")[-1]
+        await ctx.send(file=discord.File(imagepath, f"hereyougo_youhornybastard.{ext}"))
     except discord.errors.HTTPException as e:
         await ctx.send(e)
 
@@ -346,7 +349,19 @@ async def porn(ctx):
 async def newporn(ctx, newest_count=100):
     try:
         imagepath = choose_image(bot.porn_paths, True, newest_count)
-        await ctx.send(file=discord.File(imagepath, "hereyougo_youhornybastard.png"))
+        ext = imagepath.split(".")[-1]
+        await ctx.send(file=discord.File(imagepath, f"hereyougo_youhornybastard.{ext}"))
+    except discord.errors.HTTPException as e:
+        await ctx.send(e)
+
+
+@bot.command()
+@commands.is_nsfw()
+async def porngif(ctx):
+    try:
+        imagepath = choose_image(bot.porn_paths, False, 0, "gif")
+        ext = imagepath.split(".")[-1]
+        await ctx.send(file=discord.File(imagepath, f"hereyougo_youhornybastard.{ext}"))
     except discord.errors.HTTPException as e:
         await ctx.send(e)
 
