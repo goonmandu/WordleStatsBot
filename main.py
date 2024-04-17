@@ -98,7 +98,7 @@ except Exception as e:
 
 class WordleTracker(commands.Bot):
     print("Compiling Wordle regex pattern...")
-    wordle_pattern = re.compile(r'.*Wordle\s+\d+\s+[1-6X]/6\*?.*', re.DOTALL)
+    wordle_pattern = re.compile(r'Wordle (\d,)?\d{1,3} (🎉 )?[1-6X]\/6\*', re.DOTALL)
     print("Done.")
     print("Reading WordleStats database...")
     database = json.load(open(dbpath))
@@ -112,10 +112,9 @@ class WordleTracker(commands.Bot):
 
     async def evaluate_wordle(self, msg, show_feedback=False):
         lines = msg.content.split("\n")
-        delete_frontitems_until_regexmatch(lines, r'.*Wordle\s+\d+\s+[1-6X]/6\*?.*')
         delete_rearitems_until_regexmatch(lines, r'^[\U0001F7E9⬛\U0001F7E8].*')
-        extract_attempts = lines[0].replace(",", "").replace("🎉", "")
-        extract_wordle_day = lines[0].replace(",", "").replace("🎉", "")
+        extract_attempts = lines[0].replace(",", "").replace("🎉 ", "")
+        extract_wordle_day = lines[0].replace(",", "").replace("🎉 ", "")
         try:
             wordle_day = re.sub("\s+[1-6X]/6\*?.*", "", re.sub(".*Wordle\s+", "", extract_wordle_day))
             attempts = re.sub("/6\*?.*", "", re.sub(".*Wordle\s+\d+\s+", "", extract_attempts))
@@ -169,24 +168,27 @@ intents.message_content = True
 bot = WordleTracker(intents=intents, command_prefix="!")
 
 
-@bot.command()
-async def stats(ctx, *, day_number=None):
-    userdata = bot.database["guilds"][str(ctx.guild.id)]["members"][str(ctx.author.id)]
+@bot.command(aliases=["day"])
+async def stats(ctx, day_number=None, member_id=None):
+    id_to_check = member_id or str(ctx.author.id)
+    userdata = bot.database["guilds"][str(ctx.guild.id)]["members"][id_to_check]
     ret = ""
     if day_number is None:
-        for idx, daydata in enumerate(userdata.values()):
-            ret += f"Wordle {daydata['day']} {len(daydata['attempts']) if daydata['solved'] else 'X'}/6" \
-                   f"{'*' if daydata['hard'] else ''}\n\n"
-            for entry in daydata["attempts"]:
-                ret += f"`{entry}`\n"
-            ret += "\n\n"
-        ret += "\n\n"
+        await ctx.send("Please specify the day number.")
     else:
         daydata = userdata[day_number]
+        user = await bot.fetch_user(int(id_to_check))
         ret += f"Wordle {daydata['day']} {len(daydata['attempts']) if daydata['solved'] else 'X'}/6" \
-               f"{'*' if daydata['hard'] else ''}\n\n"
+               f"{'*' if daydata['hard'] else ''} for {user.name}\n\n"
         for entry in daydata["attempts"]:
-            ret += f"`{entry}`\n"
+            for box in entry:
+                if box == 0:
+                    ret += "⬛"  # BLACK LARGE SQUARE EMOJI
+                elif box == 1:
+                    ret += "🟨"  # YELLOW SQUARE EMOJI
+                else:  # box == 2
+                    ret += "🟩"  # GREEN SQUARE EMOJI
+            ret += "\n"
     await ctx.send(ret)
 
 
@@ -249,6 +251,7 @@ async def leaderboards(ctx, gate=10):
 
     def format_other(member: NameAndAvg):
         return f"`{member.avgstr()}` - {member.namestr()} ({member.fracstr()})"
+
     ret: list[NameAndAvg] = []
     retstr = ""
     for k, v in bot.database["guilds"][str(ctx.guild.id)]["members"].items():
@@ -377,7 +380,7 @@ async def give_json(ctx):
 
 
 @bot.command(aliases=["pfp"])
-async def profilepic(ctx, scope="server", member=None):
+async def profilepic(ctx, member=None, scope="global"):
     if scope not in ["server", "global"]:
         await ctx.send("Specify either server or global.")
         return
