@@ -14,4 +14,3 @@ It might work on Unix (e.g. macOS) but I haven't tested it.
 - `!oldresults` - **Admin only:** Scans given channels and adds existing Wordle results to database
 - `!remove` - **Admin only:** Removes a User ID's Wordle entry for a given Day
 - Other commands are found in `main.py`, but are insignificant and/or mainly for development purposes.
-- 
