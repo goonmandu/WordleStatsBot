@@ -7,6 +7,3 @@ from enum import Enum
 class ExitCode(Enum):
     INVALID_JSON_FILE = 1
     OTHER_ERR         = 2
-
-
-NSFW_SOURCE_PATH = f"{os.getcwd()}/download"

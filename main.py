@@ -10,7 +10,6 @@ from discord.ext import commands
 from datatypes import *
 from exceptions import *
 from bot_token import BOT_TOKEN
-from nsfw_utils import *
 from constants import *
 
 
@@ -102,9 +101,6 @@ class WordleTracker(commands.Bot):
     print("Done.")
     print("Reading WordleStats database...")
     database = json.load(open(dbpath))
-    print("Done.")
-    print("Loading NSFW paths...")
-    porn_paths = load_nsfw_paths_and_ctimes(NSFW_SOURCE_PATH)
     print("Done.")
 
     async def on_ready(self):
@@ -335,46 +331,6 @@ async def remove(ctx, member_id, day):
         user = await bot.fetch_user(member_id)
         await ctx.send(f"Deleted Day {day} for user {user.name}.")
     except Exception as e:
-        await ctx.send(e)
-
-
-@bot.command(aliases=["refreshporn"])
-@commands.is_nsfw()
-async def update_catalog(ctx):
-    bot.porn_paths = load_nsfw_paths_and_ctimes(NSFW_SOURCE_PATH)
-    await ctx.send("Refreshed porn catalog!")
-
-
-@bot.command()
-@commands.is_nsfw()
-async def porn(ctx):
-    try:
-        imagepath = choose_image(bot.porn_paths, False, 0)
-        ext = imagepath.split(".")[-1]
-        await ctx.send(file=discord.File(imagepath, f"hereyougo_youhornybastard.{ext}"))
-    except discord.errors.HTTPException as e:
-        await ctx.send(e)
-
-
-@bot.command()
-@commands.is_nsfw()
-async def newporn(ctx, newest_count=100):
-    try:
-        imagepath = choose_image(bot.porn_paths, True, newest_count)
-        ext = imagepath.split(".")[-1]
-        await ctx.send(file=discord.File(imagepath, f"hereyougo_youhornybastard.{ext}"))
-    except discord.errors.HTTPException as e:
-        await ctx.send(e)
-
-
-@bot.command()
-@commands.is_nsfw()
-async def porngif(ctx):
-    try:
-        imagepath = choose_image(bot.porn_paths, False, 0, "gif")
-        ext = imagepath.split(".")[-1]
-        await ctx.send(file=discord.File(imagepath, f"hereyougo_youhornybastard.{ext}"))
-    except discord.errors.HTTPException as e:
         await ctx.send(e)
 
 
