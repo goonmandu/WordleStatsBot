@@ -98,7 +98,7 @@ except Exception as e:
 
 class WordleTracker(commands.Bot):
     print("Compiling Wordle regex pattern...")
-    wordle_pattern = re.compile(r'Wordle (\d,)?\d{1,3} (🎉 )?[1-6X]\/6\*', re.DOTALL)
+    wordle_pattern = re.compile(r'Wordle (\d,)?\d{1,3} (🎉 )?[1-6X]\/6\*?', re.DOTALL)
     print("Done.")
     print("Reading WordleStats database...")
     database = json.load(open(dbpath))
@@ -253,6 +253,7 @@ async def leaderboards(ctx, gate=10):
         return f"`{member.avgstr()}` - {member.namestr()} ({member.fracstr()})"
 
     ret: list[NameAndAvg] = []
+    unranked: list[str] = []
     retstr = ""
     for k, v in bot.database["guilds"][str(ctx.guild.id)]["members"].items():
         total_days = len(v.items())
@@ -265,9 +266,13 @@ async def leaderboards(ctx, gate=10):
                 unsolved += 1
                 continue
             total_attempts += len(details["attempts"])
-        average = total_attempts / (total_days - unsolved)
         user = await bot.fetch_user(int(k))
-        ret.append(NameAndAvg(user.name, average, total_days, unsolved))
+        if total_days - unsolved > 0:
+            average = total_attempts / (total_days - unsolved)
+            ret.append(NameAndAvg(user.name, average, total_days, unsolved))
+        else:
+            unranked.append(user.name)
+
     if not ret:
         await ctx.send(f"No members have played played enough Wordle to be on the leaderboards.\n"
                        f"The leaderboard gate is {gate} plays.")
@@ -282,6 +287,10 @@ async def leaderboards(ctx, gate=10):
             retstr += f"🥉: {format_top_3(pair)}\n"
         else:
             retstr += f"`#{idx + 1}`: {format_other(pair)}\n"
+    if unranked:
+        retstr += "\nUnranked members:"
+        for name in unranked:
+            retstr += ""  # Add zero-solved members to unranked tab with # of tries
     await ctx.send(retstr)
 
 
